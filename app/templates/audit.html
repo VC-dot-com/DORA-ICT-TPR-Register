@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h4 class="mb-3">Audit log</h4>
+<p class="text-muted small">Append-only. Entries are inserted, never updated or deleted.</p>
+<div class="card shadow-sm"><div class="card-body">
+<table class="table table-sm">
+  <thead class="table-light"><tr><th>Timestamp (UTC)</th><th>User</th><th>Action</th><th>Entity</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr>
+      <td><code>{{ e.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</code></td>
+      <td>{{ e.username }}</td>
+      <td><span class="badge bg-dark">{{ e.action }}</span></td>
+      <td>{{ e.entity }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="text-muted">No entries yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% endblock %}
