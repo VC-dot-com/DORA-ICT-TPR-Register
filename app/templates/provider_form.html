@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h4 class="mb-3">{{ 'Edit provider' if provider else 'Add provider' }}</h4>
+<div class="card shadow-sm"><div class="card-body">
+<form method="post">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Provider name</label>
+      <input name="name" class="form-control" required value="{{ provider.name if provider else '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Country</label>
+      <input name="country" class="form-control" value="{{ provider.country if provider else '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Substitutability (1 = easy to replace, 5 = very hard)</label>
+      <select name="substitutability" class="form-select">
+        {% for i in range(1, 6) %}
+          <option value="{{ i }}" {% if provider and provider.substitutability == i %}selected{% endif %}>{{ i }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {% if not provider %}
+    <div class="col-md-6">
+      <label class="form-label">Business function supported</label>
+      <select name="function_id" class="form-select">
+        <option value="">(none)</option>
+        {% for f in functions %}
+          <option value="{{ f.id }}">{{ f.name }} ({{ f.criticality }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Contract reference</label>
+      <input name="reference" class="form-control" placeholder="CTR-0007">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Annual contract value (EUR)</label>
+      <input name="annual_value" type="number" step="1000" class="form-control" placeholder="120000">
+    </div>
+    {% endif %}
+  </div>
+  <hr>
+  <button class="btn btn-primary">Save</button>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.providers') }}">Cancel</a>
+</form>
+</div></div>
+{% endblock %}

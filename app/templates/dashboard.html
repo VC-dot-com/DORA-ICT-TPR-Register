@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h4 class="mb-3">Concentration-risk dashboard</h4>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-center shadow-sm"><div class="card-body">
+      <div class="text-muted small">Providers tracked</div>
+      <div class="fs-3 fw-bold">{{ rows|length }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center shadow-sm"><div class="card-body">
+      <div class="text-muted small">Supporting critical/important functions</div>
+      <div class="fs-3 fw-bold">{{ critical_count }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center shadow-sm"><div class="card-body">
+      <div class="text-muted small">Portfolio HHI</div>
+      <div class="fs-3 fw-bold">{{ '%.0f'|format(hhi) }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center shadow-sm
+        {% if 'High' in hhi_reading %}border-danger{% elif 'Moderate' in hhi_reading %}border-warning{% endif %}">
+      <div class="card-body">
+        <div class="text-muted small">Concentration reading</div>
+        <div class="fs-5 fw-bold">{{ hhi_reading }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h6 class="card-title">Providers by concentration-risk score</h6>
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Provider</th><th>Supports</th><th class="text-end">Value share</th>
+          <th class="text-end">Score</th><th>Band</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r.name }}</td>
+          <td>
+            {% if r.supports == 'Critical' %}<span class="badge bg-danger">Critical</span>
+            {% elif r.supports == 'Important' %}<span class="badge bg-warning text-dark">Important</span>
+            {% else %}<span class="badge bg-secondary">None</span>{% endif %}
+          </td>
+          <td class="text-end">{{ '%.1f'|format(r.share * 100) }}%</td>
+          <td class="text-end fw-bold">{{ r.score }}</td>
+          <td>
+            {% if r.band == 'High' %}<span class="badge bg-danger">High</span>
+            {% elif r.band == 'Medium' %}<span class="badge bg-warning text-dark">Medium</span>
+            {% else %}<span class="badge bg-success">Low</span>{% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-muted">No providers yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-muted small mb-0">
+      Weights in use: criticality {{ weights.criticality }},
+      concentration {{ weights.concentration }},
+      substitutability {{ weights.substitutability }}.
+      Weights are stored in the database, so every score is explainable and tunable.
+    </p>
+  </div>
+</div>
+{% endblock %}
