@@ -63,3 +63,28 @@ def test_risk_bands():
 def test_empty_portfolio_does_not_crash():
     assert portfolio_hhi([]) == 0
     assert dependency_shares([0, 0]) == [0.0, 0.0]
+
+
+# ------------------------------------------------------------------------
+# New regression tests. The weights are stored in the database so a risk
+# officer can tune them, but nothing forces them to sum to one. These two
+# tests check that the documented 0 to 100 scale actually holds.
+# ------------------------------------------------------------------------
+
+def test_score_never_exceeds_100_when_weights_sum_above_one():
+    """Weights summing above one must not push a score past the scale maximum."""
+    score = provider_score("Critical", share=1.0, substitutability=5,
+                           w_crit=0.6, w_conc=0.4, w_sub=0.3)
+    assert score <= 100.0
+
+
+def test_worst_case_provider_is_always_high_risk():
+    """
+    A provider that supports a critical function, holds the entire portfolio,
+    and cannot be replaced is the worst possible case. It must always score
+    100 and band High, whatever weights the risk officer has configured.
+    """
+    score = provider_score("Critical", share=1.0, substitutability=5,
+                           w_crit=0.3, w_conc=0.2, w_sub=0.1)
+    assert score == pytest.approx(100.0, abs=0.1)
+    assert risk_band(score) == "High"
