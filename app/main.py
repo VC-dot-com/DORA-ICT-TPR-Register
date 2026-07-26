@@ -2,11 +2,11 @@
 import csv
 import io
 from flask import (Blueprint, render_template, redirect, url_for, request,
-                   flash, Response)
+                   flash, Response, jsonify)
 from flask_login import login_required, current_user
 
 from .models import db, Provider, Contract, BusinessFunction, ScoringWeight, RiskScore
-from .scoring import score_portfolio, hhi_band
+from .scoring import score_portfolio, hhi_band, explain_score, dependency_shares
 from .auth import editor_required
 from . import audit
 
@@ -52,6 +52,33 @@ def compute_scores(persist=False):
     return rows, hhi
 
 
+def explain_provider(pid):
+    """
+    Break one provider's score into its factor contributions.
+
+    Concentration is relative to the whole register, so the provider's
+    share is computed across every provider before the engine is asked to
+    explain the score. This surfaces the explain_score engine function
+    (built and unit-tested in Unit 5) through the application for the
+    first time, giving the UI and the API a single, shared source of truth.
+
+    Returns (provider, breakdown) or (None, None) if the id is unknown.
+    """
+    target = db.session.get(Provider, pid)
+    if not target:
+        return None, None
+
+    providers = db.session.execute(db.select(Provider)).scalars().all()
+    shares = dependency_shares([p.annual_value for p in providers])
+    share = next((s for p, s in zip(providers, shares) if p.id == pid), 0.0)
+
+    breakdown = explain_score(
+        target.supports, share, target.substitutability, current_weights()
+    )
+    breakdown["share"] = share
+    return target, breakdown
+
+
 @main_bp.route("/")
 @login_required
 def dashboard():
@@ -71,6 +98,49 @@ def dashboard():
 def providers():
     rows = db.session.execute(db.select(Provider).order_by(Provider.name)).scalars().all()
     return render_template("providers.html", providers=rows)
+
+
+@main_bp.route("/providers/<int:pid>")
+@login_required
+def provider_detail(pid):
+    """Provider detail page: the score, its band, and the factor breakdown."""
+    provider, breakdown = explain_provider(pid)
+    if not provider:
+        flash("Provider not found.", "danger")
+        return redirect(url_for("main.providers"))
+    return render_template("provider_detail.html", provider=provider, breakdown=breakdown)
+
+
+@main_bp.route("/api/providers/<int:pid>/score")
+@login_required
+def provider_score_api(pid):
+    """
+    JSON score breakdown for one provider.
+
+    A small read-only API endpoint that returns the same breakdown the
+    detail page renders, so the scoring engine is consumable by machines
+    (a supervisor's tooling, an integration test) as well as by people.
+    Serving risk data out of the system is a disclosure event, so it is
+    written to the append-only audit log.
+    """
+    provider, breakdown = explain_provider(pid)
+    if not provider:
+        return jsonify({"error": "provider not found"}), 404
+
+    audit.record("API_READ", f"provider_score:{provider.name}")
+    return jsonify({
+        "provider": provider.name,
+        "country": provider.country,
+        "supports": provider.supports,
+        "annual_value": provider.annual_value,
+        "substitutability": provider.substitutability,
+        "share": round(breakdown["share"], 4),
+        "score": breakdown["score"],
+        "band": breakdown["band"],
+        "contributions": breakdown["contributions"],
+        "weights_applied": breakdown["weights_applied"],
+        "primary_driver": breakdown["primary_driver"],
+    })
 
 
 @main_bp.route("/providers/new", methods=["GET", "POST"])

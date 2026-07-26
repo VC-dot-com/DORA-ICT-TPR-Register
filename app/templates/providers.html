@@ -16,7 +16,9 @@
   <tbody>
   {% for p in providers %}
     <tr>
-      <td class="fw-semibold">{{ p.name }}</td>
+      <td class="fw-semibold">
+        <a href="{{ url_for('main.provider_detail', pid=p.id) }}" class="text-decoration-none">{{ p.name }}</a>
+      </td>
       <td>{{ p.country or '-' }}</td>
       <td>
         {% if p.supports == 'Critical' %}<span class="badge bg-danger">Critical</span>

@@ -45,7 +45,7 @@
       <tbody>
       {% for r in rows %}
         <tr>
-          <td>{{ r.name }}</td>
+          <td><a href="{{ url_for('main.provider_detail', pid=r.id) }}" class="text-decoration-none">{{ r.name }}</a></td>
           <td>
             {% if r.supports == 'Critical' %}<span class="badge bg-danger">Critical</span>
             {% elif r.supports == 'Important' %}<span class="badge bg-warning text-dark">Important</span>
