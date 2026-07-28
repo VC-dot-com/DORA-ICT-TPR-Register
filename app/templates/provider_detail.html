@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ provider.name }} - risk breakdown{% endblock %}
+{% block content %}
+
+{% set factor_labels = {
+     'criticality': 'Criticality',
+     'concentration': 'Concentration (portfolio share)',
+     'substitutability': 'Substitutability'
+   } %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a class="text-muted small text-decoration-none" href="{{ url_for('main.providers') }}">&larr; Providers</a>
+    <h4 class="mb-0">{{ provider.name }}</h4>
+  </div>
+  <div>
+    <a class="btn btn-sm btn-outline-secondary"
+       href="{{ url_for('main.provider_score_api', pid=provider.id) }}" target="_blank">View as JSON (API)</a>
+    {% if current_user.can_edit() %}
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.provider_edit', pid=provider.id) }}">Edit</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card text-center shadow-sm
+        {% if breakdown.band == 'High' %}border-danger{% elif breakdown.band == 'Medium' %}border-warning{% endif %}">
+      <div class="card-body">
+        <div class="text-muted small">Concentration-risk score</div>
+        <div class="display-6 fw-bold">{{ breakdown.score }}</div>
+        {% if breakdown.band == 'High' %}<span class="badge bg-danger">High</span>
+        {% elif breakdown.band == 'Medium' %}<span class="badge bg-warning text-dark">Medium</span>
+        {% else %}<span class="badge bg-success">Low</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="row">
+        <div class="col-6 mb-2">
+          <div class="text-muted small">Country</div>
+          <div class="fw-semibold">{{ provider.country or '-' }}</div>
+        </div>
+        <div class="col-6 mb-2">
+          <div class="text-muted small">Supports</div>
+          {% if provider.supports == 'Critical' %}<span class="badge bg-danger">Critical</span>
+          {% elif provider.supports == 'Important' %}<span class="badge bg-warning text-dark">Important</span>
+          {% else %}<span class="badge bg-secondary">None</span>{% endif %}
+        </div>
+        <div class="col-6 mb-2">
+          <div class="text-muted small">Annual value</div>
+          <div class="fw-semibold">{{ '{:,.0f}'.format(provider.annual_value) }} EUR</div>
+        </div>
+        <div class="col-6 mb-2">
+          <div class="text-muted small">Portfolio share</div>
+          <div class="fw-semibold">{{ '%.1f'|format(breakdown.share * 100) }}%</div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Substitutability</div>
+          <div class="fw-semibold">{{ provider.substitutability }} / 5</div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Primary driver</div>
+          <div class="fw-semibold">{{ factor_labels[breakdown.primary_driver] }}</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card shadow-sm"><div class="card-body">
+  <h6 class="card-title">How this score is built</h6>
+  <p class="text-muted small">
+    The score runs from 0 to 100 and is the sum of three weighted factors.
+    Each bar below shows how many points that factor contributes, so the
+    number is never a black box: every point is traceable to criticality,
+    concentration, or substitutability.
+  </p>
+  <table class="table table-sm align-middle mb-3">
+    <thead class="table-light">
+      <tr><th>Factor</th><th class="text-center">Weight</th>
+          <th style="width:45%">Contribution</th><th class="text-end">Points</th></tr>
+    </thead>
+    <tbody>
+    {% for key in ['criticality', 'concentration', 'substitutability'] %}
+      <tr>
+        <td>
+          {{ factor_labels[key] }}
+          {% if key == breakdown.primary_driver %}
+            <span class="badge bg-dark ms-1">primary driver</span>{% endif %}
+        </td>
+        <td class="text-center">{{ '%.2f'|format(breakdown.weights_applied[key]) }}</td>
+        <td>
+          <div class="progress" role="progressbar" style="height:14px;"
+               aria-valuenow="{{ breakdown.contributions[key] }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar
+                 {% if key == breakdown.primary_driver %}bg-dark{% else %}bg-secondary{% endif %}"
+                 style="width: {{ breakdown.contributions[key] }}%;"></div>
+          </div>
+        </td>
+        <td class="text-end fw-semibold">{{ breakdown.contributions[key] }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="fw-bold">
+        <td colspan="3" class="text-end">Total score</td>
+        <td class="text-end">{{ breakdown.score }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  <p class="text-muted small mb-0">
+    Weights are stored in the database, so every score is explainable and
+    tunable by a risk officer. The same breakdown is available to machines
+    at <code>{{ url_for('main.provider_score_api', pid=provider.id) }}</code>.
+  </p>
+</div></div>
+
+{% endblock %}

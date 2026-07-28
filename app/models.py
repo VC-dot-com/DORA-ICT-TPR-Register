@@ -106,6 +106,6 @@ class AuditLog(db.Model):
     __tablename__ = "audit_log"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), nullable=False)
-    action = db.Column(db.String(40), nullable=False)     # CREATE | UPDATE | DELETE | EXPORT | LOGIN
+    action = db.Column(db.String(40), nullable=False)     # CREATE | UPDATE | DELETE | EXPORT | LOGIN | API_READ
     entity = db.Column(db.String(120), nullable=False)
     timestamp = db.Column(db.DateTime, default=utcnow, nullable=False)
