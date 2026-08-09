@@ -37,7 +37,7 @@ Since January 2025, DORA requires every in-scope financial entity to keep an acc
 
 A layered (n-tier) design keeps the presentation, business-logic, data-access, and database layers cleanly separated, so a change in one layer does not ripple through the others.
 
-![Architecture](docs/architecture.png)
+![Architecture](docs/screenshots/architecture.png)
 
 ## Tech stack
 
