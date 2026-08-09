@@ -1,60 +1,92 @@
 # DORA ICT Third-Party Risk Register and Concentration-Risk Tool
 
-A lightweight web application that helps a financial entity inventory its ICT
-third-party arrangements, flag those supporting critical or important functions,
-score concentration risk, and export a Register of Information in the supervisory
-format required under the EU Digital Operational Resilience Act (DORA).
+![CI](https://github.com/VC-dot-com/DORA-ICT-TPR-Register/actions/workflows/ci.yml/badge.svg)
+![Version](https://img.shields.io/github/v/tag/VC-dot-com/DORA-ICT-TPR-Register?label=version)
+![Python](https://img.shields.io/badge/python-3.14-blue)
+![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen)
 
-MSIT 5910 Capstone Project, University of the People (T5-2026).
+A lightweight web application that helps a financial entity inventory its information and communication technology (ICT) third-party providers, score **concentration risk** transparently, and export a supervisory **Register of Information** under the EU **Digital Operational Resilience Act (DORA)**.
 
-## Status
-Unit 4: initial implementation. Authentication, provider CRUD, the concentration-risk
-scoring engine, the dashboard, the register export, and the audit log are working.
+> Capstone project for MSIT 5910, University of the People. All data is synthetic.
+
+---
+
+## The problem
+
+Since January 2025, DORA requires every in-scope financial entity to keep an accurate register of its ICT third-party arrangements and to actively manage the risk of depending too heavily on a single provider for critical services. Many firms still do this in fragmented spreadsheets: a 2024 supervisory dry run found that most participating entities could not produce a clean register from the tools they had. This project turns that obligation into a usable, auditable instrument.
+
+## What it does
+
+- **Inventories** providers, contracts, and business functions, flagging those that support critical or important functions.
+- **Scores concentration risk** for each provider from three inputs, criticality, portfolio share (via the Herfindahl-Hirschman Index), and substitutability, combined through transparent, database-stored weights.
+- **Explains every score** factor by factor, so the number is never a black box.
+- **Exports** a Register of Information as CSV in the supervisory shape.
+- **Controls access** with three roles (administrator, editor, viewer) and records every change and export in an append-only audit log.
+
+## Screenshots
+
+**Concentration-risk dashboard**
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+**Provider detail with score breakdown**
+
+![Provider detail](docs/screenshots/detail.png)
 
 ## Architecture
-Layered (n-tier), as specified in the Unit 3 design:
 
-| Layer | Responsibility | Implementation |
-|---|---|---|
-| Presentation | Screens and forms | Jinja2 templates + Bootstrap |
-| Business logic | Auth/RBAC, CRUD, scoring, export, audit | Flask blueprints, `app/scoring.py` |
-| Data access | Parameterised queries only | SQLAlchemy ORM |
-| Database | Seven tables | SQLite |
+A layered (n-tier) design keeps the presentation, business-logic, data-access, and database layers cleanly separated, so a change in one layer does not ripple through the others.
 
-The presentation layer never reaches the database directly. Every request passes
-through the business-logic layer, where authorisation is enforced per route.
+![Architecture](docs/screenshots/architecture.png)
 
-## Data model (seven tables)
-`users`, `providers`, `contracts`, `business_functions`, `scoring_weights`,
-`risk_scores`, `audit_log`
+## Tech stack
 
-## Scoring methodology
-Each provider is scored 0-100 from three inputs:
-- **Criticality** (dominant factor): does it support a critical or important function
-- **Concentration**: its share of the portfolio, feeding a Herfindahl-Hirschman Index
-- **Substitutability**: how hard it would be to replace (1 to 5)
+Python, Flask, SQLAlchemy, SQLite, Jinja2, and Bootstrap. Tested with pytest, with continuous integration through GitHub Actions.
 
-Weights live in the `scoring_weights` table, not in code, so a risk officer can
-tune them and every score stays explainable and auditable.
+## Run it locally
 
-## Quick start
 ```bash
+git clone https://github.com/VC-dot-com/DORA-ICT-TPR-Register.git
+cd DORA-ICT-TPR-Register
 python -m venv venv
-venv\Scripts\activate        # Windows
+venv\Scripts\activate            # Windows  (use: source venv/bin/activate  on macOS/Linux)
 pip install -r requirements.txt
-python seed.py               # loads synthetic data
-python run.py                # http://127.0.0.1:5000
+python seed.py                   # load the synthetic register
+python run.py                    # then open http://127.0.0.1:5000
 ```
 
-Logins: `admin/admin123`, `editor/editor123`, `viewer/viewer123`
+Demo accounts (synthetic): `admin` / `admin123`, `editor` / `editor123`, `viewer` / `viewer123`.
 
-## Tests
+## Testing
+
 ```bash
-pytest -v
+pytest -q
 ```
-The tests lock the scoring engine to the figures validated in the Unit 2
-spreadsheet prototype. GitHub Actions runs them on every push.
 
-## Data
-Synthetic data only. No real client, vendor, or personal data is used,
-in line with GDPR and confidentiality requirements.
+38 automated tests: 18 unit tests on the scoring engine and 20 integration tests spanning authentication, role-based access, provider CRUD, the dashboard, the score API, the audit log, and the register export. The same suite runs on every push through GitHub Actions.
+
+## Concentration-risk methodology
+
+Each provider's score (0 to 100) is a weighted blend of criticality (0.50), concentration (0.30), and substitutability (0.20). Portfolio concentration is measured with the Herfindahl-Hirschman Index and banded Low, Moderate, or High using thresholds drawn from competition policy. The weights live in the database, so a risk officer can inspect and tune them, and every result stays explainable and auditable.
+
+## Versioning
+
+Semantic versioning, derived from Git tags:
+
+| Version | Milestone |
+| --- | --- |
+| v0.1.0 | First working implementation |
+| v0.2.0 | Scoring correctness and explainability |
+| v0.3.0 | Evaluation, performance, and API enhancements |
+| v0.4.0 | Integration testing and system validation |
+| v1.0.0 | Final capstone release |
+
+The running application shows its version and build in the page footer.
+
+## Documentation
+
+The full capstone report, covering the design, methodology, results, and discussion, is included in the repository.
+
+## License and disclaimer
+
+This is an academic prototype built entirely on synthetic data. It is a demonstration of a concentration-risk methodology, not a production compliance system.

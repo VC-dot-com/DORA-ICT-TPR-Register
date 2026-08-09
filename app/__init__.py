@@ -6,10 +6,33 @@ Wires the layers together:
   ->  data access (SQLAlchemy ORM)  ->  database (SQLite)
 """
 import os
+import subprocess
 from flask import Flask
 from flask_login import LoginManager
 
 from .models import db, User
+
+_FALLBACK_VERSION = "0.4.0-dev"  # used only when git or tags are unavailable
+
+
+def _describe():
+    """Version derived from git tags via `git describe`:
+      '0.9.0' exactly on the v0.9.0 tag, '0.9.0-3-gabc1234' three commits later,
+      or a short hash if no tag is reachable. Falls back when git is absent."""
+    try:
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        r = subprocess.run(
+            ["git", "describe", "--tags", "--always"],
+            cwd=repo_root, capture_output=True, text=True, timeout=2,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip().lstrip("v")
+    except Exception:
+        pass
+    return _FALLBACK_VERSION
+
+
+__version__ = _describe()
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
@@ -35,6 +58,10 @@ def create_app(config=None):
     from .main import main_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
+
+    @app.context_processor
+    def inject_version():
+        return {"app_version": __version__}
 
     with app.app_context():
         db.create_all()
