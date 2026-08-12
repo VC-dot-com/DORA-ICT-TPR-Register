@@ -12,7 +12,7 @@ from flask_login import LoginManager
 
 from .models import db, User
 
-_FALLBACK_VERSION = "0.4.0-dev"  # used only when git or tags are unavailable
+_FALLBACK_VERSION = "1.0.0"  # used only when git or tags are unavailable
 
 
 def _describe():
